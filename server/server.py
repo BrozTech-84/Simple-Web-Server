@@ -1,6 +1,28 @@
 # ...existing code...
 import socket
 import traceback
+import os
+
+def get_content_type(filename):
+    if filename.endswith(".html"):
+        return "text/html"
+    elif filename.endswith(".css"):
+        return "text/css"
+    elif filename.endswith(".js"):
+        return "application/javascript"
+    elif filename.endswith(".png"):
+        return "image/png"
+    elif filename.endswith(".jpg") or filename.endswith(".jpeg"):
+        return "image/jpeg"
+    elif filename.endswith(".svg"):
+        return "image/svg+xml"
+    elif filename.endswith(".woff") or filename.endswith(".woff2"):
+        return "font/woff2"
+    elif filename.endswith(".ttf"):
+        return "font/ttf"
+    else:
+        return "application/octet-stream"
+
 
 def parse_request_line(request_text):
     if not request_text:
@@ -11,6 +33,7 @@ def parse_request_line(request_text):
         raise ValueError(f"Invalid request line: {first_line!r}")
     method, path, version = parts[0], parts[1], " ".join(parts[2:])
     return method, path, version
+
 
 def parse_headers(request_text):
     lines = request_text.split("\r\n")
@@ -69,8 +92,8 @@ try:
             print(raw_request)
 
             try:
-                method, path, version = parse_request_line(raw_request)
-                headers = parse_headers(raw_request)
+                method, path, version = parse_request_line(raw_request) 
+                headers = parse_headers(raw_request)    
             except ValueError as e:
                 print("Failed to parse request:", e)
                 response = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nBad Request"
@@ -93,3 +116,42 @@ except KeyboardInterrupt:
     print("\nServer shutting down...")
 finally:
     server_socket.close()
+
+# ===========================
+# Serve Static Files
+# ===========================
+
+if path.startswith("/static/"):
+    file_path = path.lstrip("/")  # remove leading slash
+    full_path = os.path.join(os.getcwd(), file_path)
+
+    if os.path.exists(full_path) and os.path.isfile(full_path):
+        # Read file as binary
+        with open(full_path, "rb") as f:
+            body = f.read()
+
+        content_type = get_content_type(full_path)
+
+        
+        # Send headers
+        header = (
+            "HTTP/1.1 200 OK\r\n"
+            f"Content-Type: {content_type}\r\n"
+            f"Content-Length: {len(body)}\r\n"
+            "\r\n"
+        )
+
+        client_socket.sendall(header.encode() + body)
+    
+    else:
+        # File not found
+        body = b"404 Not Found"
+        header = (
+            "HTTP/1.1 404 Not Found\r\n"
+            "Content-Type: text/plain\r\n"
+            f"Content-Length: {len(body)}\r\n"
+            "\r\n"
+        )
+        
+        client_socket.sendall(header.encode() + body)
+        
