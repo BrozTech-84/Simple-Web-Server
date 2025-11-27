@@ -64,3 +64,50 @@ The server receives the full HTTP request message sent by the browser and prints
     '''
 
 ![alt text](image-3.png)
+
+##  Running the Web Server (Serving Static Files)
+
+This project includes a simple web server built using Python sockets.  
+It can serve HTML, CSS, JavaScript, images, and other static files from the **static/** directory.
+
+---
+
+## Project Structure
+Simple-Web-Server/
+│
+├── server.py
+├── handler.py
+└── static/
+├── index.html
+├── styles.css
+├── script.js
+└── images/
+
+
+---
+
+##  How to Run the Server
+
+1. Open a terminal inside the project folder:
+2. Run the server:
+3. You should see:
+    Bound to port 8080
+    Server is listening...
+
+
+---
+
+## Accessing Static Files in the Browser
+
+Static files are served from the `/static/` route.
+
+### Open the homepage
+    http://127.0.0.1:8080/
+or
+
+http://127.0.0.1:8080/static/index.html
+
+
+
+
+
