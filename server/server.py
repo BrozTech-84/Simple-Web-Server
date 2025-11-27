@@ -1,7 +1,7 @@
-# ...existing code...
 import socket
 import traceback
 import os
+from handler import handle_request   # <-- ADD THIS
 
 def get_content_type(filename):
     if filename.endswith(".html"):
@@ -46,6 +46,7 @@ def parse_headers(request_text):
             headers[key] = value
     return headers
 
+
 def read_request(client_socket, max_size=65536):
     buffer = b""
     client_socket.settimeout(1.0)
@@ -61,6 +62,7 @@ def read_request(client_socket, max_size=65536):
         client_socket.settimeout(None)
     return buffer.decode("utf-8", errors="replace")
 
+
 HOST = "127.0.0.1"
 PORT = 8080
 
@@ -70,30 +72,29 @@ try:
     server_socket.bind((HOST, PORT))
 except OSError as e:
     print("Failed to bind:", e)
-    print("If the port is in use, change PORT or stop the process using it.")
     raise
 
 print("Bound to port", PORT)
 server_socket.listen(5)
 print("Server is listening...")
 
+
 try:
     while True:
         client_socket, client_address = server_socket.accept()
         print("Accepted connection from", client_address)
+
         try:
             raw_request = read_request(client_socket)
             if not raw_request:
-                print("Empty request received, closing connection.")
                 client_socket.close()
                 continue
 
-            print("Raw request received:")
-            print(raw_request)
+            print("Raw request received:\n", raw_request)
 
             try:
-                method, path, version = parse_request_line(raw_request) 
-                headers = parse_headers(raw_request)    
+                method, path, version = parse_request_line(raw_request)
+                headers = parse_headers(raw_request)
             except ValueError as e:
                 print("Failed to parse request:", e)
                 response = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nBad Request"
@@ -101,11 +102,14 @@ try:
                 client_socket.close()
                 continue
 
-            print("\nParsed Request Line:", method, path, version)
-            print("Parsed Headers:", headers)
+            print("Parsed:", method, path, version)
+            print("Headers:", headers)
 
-            response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello!"
-            client_socket.send(response.encode("utf-8"))
+            # -----------------------------------------
+            # 🚀 CALL THE HANDLER HERE
+            # -----------------------------------------
+            handle_request(method, path, version, client_socket)
+
         except Exception:
             print("Error handling connection:")
             traceback.print_exc()
@@ -114,44 +118,6 @@ try:
 
 except KeyboardInterrupt:
     print("\nServer shutting down...")
+
 finally:
     server_socket.close()
-
-# ===========================
-# Serve Static Files
-# ===========================
-
-if path.startswith("/static/"):
-    file_path = path.lstrip("/")  # remove leading slash
-    full_path = os.path.join(os.getcwd(), file_path)
-
-    if os.path.exists(full_path) and os.path.isfile(full_path):
-        # Read file as binary
-        with open(full_path, "rb") as f:
-            body = f.read()
-
-        content_type = get_content_type(full_path)
-
-        
-        # Send headers
-        header = (
-            "HTTP/1.1 200 OK\r\n"
-            f"Content-Type: {content_type}\r\n"
-            f"Content-Length: {len(body)}\r\n"
-            "\r\n"
-        )
-
-        client_socket.sendall(header.encode() + body)
-    
-    else:
-        # File not found
-        body = b"404 Not Found"
-        header = (
-            "HTTP/1.1 404 Not Found\r\n"
-            "Content-Type: text/plain\r\n"
-            f"Content-Length: {len(body)}\r\n"
-            "\r\n"
-        )
-        
-        client_socket.sendall(header.encode() + body)
-        
